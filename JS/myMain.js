@@ -1,0 +1,1 @@
+"use strict"; // JS strict mode 
