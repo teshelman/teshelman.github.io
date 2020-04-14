@@ -10,18 +10,13 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="JS_CSS_downloaded_libraries/leaflet/leaflet.css" />
     <link rel="stylesheet" href="JS_CSS_downloaded_libraries/bootstrap-4.4.1-dist/css/bootstrap.min.css">
-    <!-- <link rel="stylesheet" href="css/w3.css"> -->
-    <link rel="stylesheet" href="css/scrolling-nav.css">
+    <link rel="stylesheet" href="myCSS_styleFiles/scrolling-nav.css">
     <!-- Scripts -->
+    <script src="js/myMain.js"></script>
     <script src="JS_CSS_downloaded_libraries/leaflet/leaflet.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="JS_CSS_downloaded_libraries/jquery-3.4.1.min.js"></script>
     <script src="JS_CSS_downloaded_libraries/bootstrap-4.4.1-dist/js/bootstrap.min.js"></script>
-    <!-- 
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script> -->
-
 </head>
 
 <body id="page-top">
@@ -43,7 +38,7 @@
                         <a class="nav-link js-scroll-trigger" href="#about">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link js-scroll-trigger" href="#services">Services</a>
+                        <a class="nav-link js-scroll-trigger" href="#map">Map</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link js-scroll-trigger" href="#memes">MEMES</a>
@@ -85,12 +80,13 @@
         </div>
     </section>
 
-    <section id="services" class="bg-light">
+    <section id="map" class="bg-light">
         <div class="container">
             <div class="row">
                 <div class="col-lg-8 mx-auto">
-                    <h2>Services we offer</h2>
-                    <p class="lead">None at this time, but check back soon.</p>
+                    <h2>Map</h2>
+                    <p class="lead">First map created for Internet Mapping:</p>
+                    <div id="mapId" style="height: 400px; width: 600px;"></div>
                 </div>
             </div>
         </div>
