@@ -842,10 +842,10 @@
             Use queue to handle three files in once.
             */
             queue()
-                .defer(d3.json, '/data/us-states.json')
-                .defer(d3.csv, '/data/airports.csv')
-                .defer(d3.csv, '/data/carriers.csv')
-                .defer(d3.csv, '/data/2009-2018_aggregate.csv')
+                .defer(d3.json, '/MyWebApp/data/us-states.json')
+                .defer(d3.csv, '/MyWebApp/data/airports.csv')
+                .defer(d3.csv, '/MyWebApp/data/carriers.csv')
+                .defer(d3.csv, '/MyWebApp/data/2009-2018_aggregate.csv')
                 .await(draw); 
         </script>
     </div>
