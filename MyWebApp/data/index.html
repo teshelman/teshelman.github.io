@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <!-- change these later to local files -->
+    <!-- <script src="https://d3js.org/d3.v3.min.js"></script> -->
+    <script src="/JS_CSS_downloaded_libraries/d3.v3.min.js"></script>
+    
+    <!-- <script src="https://d3js.org/queue.v1.min.js"></script> -->
+    <script src="/JS_CSS_downloaded_libraries/queue.v1.min.js"></script>
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
+    <script src="/JS_CSS_downloaded_libraries/jquery.min.js"></script>
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.3.1/rangeslider.min.js"></script> -->
+    <script src="/JS_CSS_downloaded_libraries/rangeslider.min.js"></script>
+
+    <!-- <link href="https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.3.1/rangeslider.min.css" rel="stylesheet"> -->
+    <link href="/JS_CSS_downloaded_libraries/rangeslider.min.css" rel="stylesheet">
+
+    <!-- <link rel="stylesheet" href="/myCSS_styleFiles/FlightDelayMap.css"> -->
+    <link rel="stylesheet" href="./FlightDelayMap.css" />
+
+    <!-- <meta charset="utf-8"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"> -->
+    <link href="/JS_CSS_downloaded_libraries/bootstrap.min.css" rel="stylesheet">
+
+    <!-- TODO commented this jquery lib out to get working slider again -->
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script> -->
+
+    <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script> -->
+    <script src="/JS_CSS_downloaded_libraries/bootstrap.min.js"></script>
+
+    <script type="text/javascript">
+
+        function draw(error, geo_data, airport_data, carrier_data, data) {
+            "use strict";
+            /*
+            geo_data:    csv US map data
+            airport_data:   include airport's ID (iata code) with full name,
+                            and location geo info.
+            carrier_data:   include carrier short name & full name.
+            data:   flight delay dataset.
+            */
+            //create a function to load airport geo data
+            function make_array(data) {
+                /*
+                iata - id
+                lat / long - geo data
+                */
+                var new_data = {};
+                data.forEach(function (d) {
+                    var key = d['iata'];
+                    new_data[key] = d;
+                });
+                return new_data;
+            }
+
+            function get_airport_coords(id) {
+                var lat = window.airport_array[id]['lat'];
+                var lon = window.airport_array[id]['long'];
+                return [+lon, +lat];
+            }
+
+            function carrier_array(data) {
+                /*
+                code - id
+                Description - carrier full name
+                */
+                var new_data = {};
+                data.forEach(function (d) {
+                    var key = d['Code'];
+                    new_data[key] = d['Description'];
+                });
+                return new_data;
+            }
+
+            function create_top_lists(data) {
+                /*
+                Load all flight data return a list including 
+                top 10 most flight carrier list by year
+                */
+                //nest the data by year and carrier
+                var carrier_count = d3.nest()
+                    .key(function (d) { return d.year; })
+                    .key(function (d) { return d.carrier; })
+                    .rollup(function (leaves) {
+                        var total_flights = d3.sum(leaves, function (d) {
+                            return d['arr_flights'];
+                        });
+                        return {
+                            'total': total_flights,
+                        };
+                    }).entries(data);
+
+                var all_year = [];
+                for (var year_c = 0; year_c < 11; year_c++) {
+                    var sorted_carrier = carrier_count[year_c].values.sort(function (a, b) {
+                        return b.values['total'] - a.values['total'];
+                    });
+                    var top_10 = [];
+                    for (var i = 0; i < 10; i++) {
+                        top_10.push(sorted_carrier[i].key);
+                    }
+                    top_10.push("all");
+                    all_year.push(top_10);
+                }
+                return all_year;
+            }
+            /*
+            global data section
+            */
+            //set airport_data to global
+            window.airport_array = make_array(airport_data);
+            //set carrier_data to global
+            window.carrier_array = carrier_array(carrier_data);
+            //set the carrier list to global
+            window.all_year_top = create_top_lists(data);
+            //set a global year value
+            window.global_year = 2006;
+            //pre set carrier selector to all
+            window.selected_carrier = "all";
+            //global data
+            window.data = data;
+
+            /*Size setting for bl.ocks.org */
+            var margin = 0,
+                width = 960 - margin,
+                height = 500 - margin;
+
+            var svg = d3.select("body")
+                .append("svg")
+                .attr("width", width + margin)
+                .attr("height", height + margin)
+
+            /*            
+            Create base US map with Zoom and move features.
+            */
+            //set map center
+            var projection = d3.geo.albersUsa()
+                .translate([width / 2, height / 2]);
+
+            var path = d3.geo.path()
+                .projection(projection);
+
+            //add zoom in zoom out
+            var zoom = d3.behavior.zoom()
+                .translate(projection.translate())
+                .scale(projection.scale())
+                .scaleExtent([2 * height, 16 * height])
+                .on("zoom", zoomed);
+
+            function zoomed() {
+                //resize or relocate when the map is zoomed.
+                projection.translate(d3.event.translate).scale(d3.event.scale);
+                g.selectAll("path").attr("d", path);
+                g.selectAll("circle")
+                    .attr('cx', function (d) { return projection(d.values['coords'])[0]; })
+                    .attr('cy', function (d) { return projection(d.values['coords'])[1]; });
+            }
+
+            var g = svg.append("g")
+                .call(zoom);
+
+            //add a move functon for the map.
+            function clicked(d) {
+                var centroid = path.centroid(d),
+                    translate = projection.translate();
+
+                projection.translate([
+                    translate[0] - centroid[0] + width / 2,
+                    translate[1] - centroid[1] + height / 2
+                ]);
+
+                zoom.translate(projection.translate());
+
+                g.selectAll("path").transition()
+                    .duration(500)
+                    .attr("d", path);
+                g.selectAll("circle")
+                    .transition()
+                    .duration(500)
+                    .attr('cx', function (d) { return projection(d.values['coords'])[0]; })
+                    .attr('cy', function (d) { return projection(d.values['coords'])[1]; });
+            }
+
+
+            //draw map
+            g.append('g')
+                .attr('class', 'map')
+                .selectAll('path')
+                .data(geo_data.features)
+                .enter()
+                .append('path')
+                .attr('d', path)
+                .on("click", clicked)
+                .style('fill', 'lightgrey')
+                .style('stroke', 'black')
+                .style('stroke-width', 0.25);
+
+            /*
+            Tooltip section
+            Making tooltip which shows mouse on a circle.
+            */
+            //create airport tooltip div
+            var div = d3.select("body")
+                .append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+            //create tooltip functions
+            function show_tooltip(d) {
+
+                var this_airport = window.airport_array[d.key];
+                var this_info = d.values;
+
+                //setup a html var to display infomation for each element by airport ID
+                var info_table = "<table class = 'tooltips'>" +
+                    "<tr><th> &nbsp; </th><th> Flights </th><th> Rate </th></tr>" +
+                    "<tr><td> Delay </td><td>" + this_info.delay +
+                    "</td><td>" + this_info.rate_delay + "% </td></tr>" +
+                    "<tr><td> Not Arrived </td><td>" + this_info.notarrived +
+                    "</td><td>" + this_info.rate_notarrived + "% </td></tr>" +
+                    "</table>";
+                var print_html = "<b>Tooltip</b> <br />" +
+                    "Year: " + window.global_year + "<br />" +
+                    "Airport: " + this_airport.airport + "<br />" +
+                    "City: " + this_airport.city + "<br />" +
+                    "State: " + this_airport.state + "<br />" +
+                    "Total Flights: " + this_info.total + "<br />" +
+                    info_table;
+
+                div.transition()
+                    .duration(400)
+                    .style("opacity", 0.9);
+                div.html(print_html)
+                    .style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            }
+            function hide_tooltip(d) {
+                div.transition()
+                    .duration(600)
+                    .style("opacity", 0);
+            }
+
+            //create airport tooltip div
+            var div_carrier = d3.select("body")
+                .append("div")
+                .attr("class", "carrier_name")
+                .style("opacity", 0);
+
+            function show_carrier(d) {
+                if (d === "all") {
+                    var carrier_name = "All Carriers";
+                } else {
+                    var carrier_name = window.carrier_array[d];
+                }
+                //get the length of the name string, use for styling
+                var size = carrier_name.length;
+                div_carrier.transition()
+                    .duration(400)
+                    .style("opacity", 0.9);
+                div_carrier.html(carrier_name)
+                    .style("width", (size * 6) + "px")
+                    .style("left", (840 - (size * 6)) + "px")
+                    .style("top", (d3.event.pageY - 15) + "px");
+            }
+
+            //two simple return key functions for data use.    
+            function key_delay(d) {
+                return d['key'];
+            }
+            function key_notarr(d) {
+                return d['key'];
+            }
+
+            function nest_data(data, selected_carrier) {
+                /*
+                nest flight data by year and airport's ID(iata code)
+                return:
+                total: combine all arr_flights with same airport and same year.
+                delay: combine all arr_del15 with same airport and same year.
+                notarrived: combine all arr_cancelled + arr_diverted with same airport and same year.
+                coords: location of the airport [long, lat].
+                rate_delay: calculate by delay and total.
+                rate_notarrived: calculate by notarrived amd total.
+                */
+
+                var nested = d3.nest()
+                    .key(function (d) {
+                        return d.year;
+                    })
+                    .key(function (d) {
+                        return d.airport;
+                    })
+                    .rollup(function (leaves) {
+
+                        var total_delay = d3.sum(leaves, function (d) {
+                            return d['arr_del15'];
+                        });
+                        var total_notarrived = d3.sum(leaves, function (d) {
+                            var total = +d['arr_cancelled'] + +d['arr_diverted'];
+                            return total;
+                        });
+                        var total_flights = d3.sum(leaves, function (d) {
+                            return d['arr_flights'];
+                        });
+                        var rate_delay = total_delay * 100 / total_flights
+                        var rate_notarrived = total_notarrived * 100 / total_flights
+                        var coords = get_airport_coords(leaves[0]['airport']);
+                        return {
+                            'total': total_flights,
+                            'delay': total_delay,
+                            'notarrived': total_notarrived,
+                            'coords': coords,
+                            'rate_delay': rate_delay.toFixed(2),
+                            'rate_notarrived': rate_notarrived.toFixed(2)
+                        };
+                    });
+                if (selected_carrier === "all") {
+                    nested = nested.entries(data);
+                } else {
+                    nested = nested.entries(data.filter(function (d) { return d.carrier === selected_carrier; }));
+                }
+                window.current_selector = selected_carrier;
+                return nested;
+            }
+
+            //use nest_data function to create all carrier nested d3 data.
+            var nested = nest_data(data, window.selected_carrier);
+
+            //rate value is 0~100, create a simple fix radius
+            //implement sqrt() for the radius to scale the area instead of radius 
+            var radius = d3.scale.sqrt()
+                .domain([0, 100])
+                .range([0, 40]);
+
+            //set the data to the first year
+            var year_data = nested[0].values;
+
+            //add a warning label, display when the selected carrier has no data in this year.
+            var warning = g.append("text")
+                .attr("class", "warning")
+                .attr("x", 200)
+                .attr("y", 50);
+
+            //add a year label display year.
+            var year_label = g.append("text")
+                .attr("class", "year_label")
+                .attr("x", 30)
+                .attr("y", 30);
+            year_label.text("Year: 2006");
+
+            //draw delay bubble
+            g.append('g')
+                .attr("class", "bubble delay")
+                .selectAll("circle")
+                .data(year_data)
+                .enter()
+                .append("circle")
+                .attr('cx', function (d) { return projection(d.values['coords'])[0]; })
+                .attr('cy', function (d) { return projection(d.values['coords'])[1]; })
+                .attr('r', 0.1)
+                .transition()
+                .duration(500)
+                .attr('r', function (d) { return radius(d.values['rate_delay']); });
+
+            //draw notarrived bubble
+            g.append('g')
+                .attr("class", "bubble notarrived")
+                .selectAll("circle")
+                .data(year_data)
+                .enter()
+                .append("circle")
+                .attr('cx', function (d) { return projection(d.values['coords'])[0]; })
+                .attr('cy', function (d) { return projection(d.values['coords'])[1]; })
+                .attr('r', 0.1)
+                .transition()
+                .duration(500)
+                .attr('r', function (d) { return radius(d.values['rate_notarrived']); });
+
+            function update() {
+                if (window.current_selector !== window.selected_carrier) {
+                    /*
+                    if new global filter setting is different from the current one
+                    run nest_data re-nest data by filter setup
+                    */
+                    nested = nest_data(window.data, window.selected_carrier);
+                }
+
+                //set a empty warning label      
+                warning.text("");
+
+                var idx = 0;
+                for (var i = 0; i < nested.length; i++) {
+                    if (+nested[i].key === window.global_year) {
+                        idx = i;
+                    }
+                }
+                if (idx === 0 && +nested[0].key !== window.global_year) {
+                    /*
+                    if unable to get the selected carrier flight data
+                    print a warning, and set the carrier fliter to ALL
+                    */
+                    var warning_message = "Warning: " + window.selected_carrier +
+                        " has no data in " + window.global_year + ". Filter reset to ALL.";
+                    warning.text(warning_message);
+                    nested = nest_data(window.data, "all");
+
+                    //set index
+                    idx = window.global_year - 2006;
+                }
+
+                //display year
+                year_label.text("Year: " + window.global_year);
+                var current_carrierlist = window.all_year_top[(window.global_year - 2006)];
+
+                var year_data = nested[idx];
+
+                //update new data
+                var delay_circles = g.select(".delay")
+                    .selectAll('circle')
+                    .data(year_data.values, key_delay);
+                var notarrived_circles = g.select(".notarrived")
+                    .selectAll('circle')
+                    .data(year_data.values, key_notarr);
+
+                //transition to radius 0 circle not remove
+                //keep all circles
+                delay_circles.exit()
+                    .transition()
+                    .duration(750)
+                    .attr("r", 0);
+                notarrived_circles.exit()
+                    .transition()
+                    .duration(750)
+                    .attr("r", 0);
+
+                projection.translate();
+
+                //create new circles with r = 0
+                delay_circles.enter()
+                    .append("circle")
+                    .attr("r", 0);
+                notarrived_circles.enter()
+                    .append("circle")
+                    .attr("r", 0);
+
+                //resize and relocate circles
+                delay_circles.on("mouseover", show_tooltip)
+                    .on("mouseout", hide_tooltip)
+                    .attr('cx', function (d) { return projection(d.values['coords'])[0]; })
+                    .attr('cy', function (d) { return projection(d.values['coords'])[1]; })
+                    .transition()
+                    .duration(500)
+                    .attr('r', function (d) { return radius(d.values['rate_delay']); });
+                notarrived_circles.on("mouseover", show_tooltip)
+                    .on("mouseout", hide_tooltip)
+                    .attr('cx', function (d) { return projection(d.values['coords'])[0]; })
+                    .attr('cy', function (d) { return projection(d.values['coords'])[1]; })
+                    .transition()
+                    .duration(500)
+                    .attr('r', function (d) { return radius(d.values['rate_notarrived']); });
+
+                //create a carrier filter
+                var selector = d3.select(".selector");
+                selector.selectAll("div").remove();  //clean up
+                selector.selectAll("div")
+                    .data(current_carrierlist)
+                    .enter()
+                    .append("div")
+                    .append("text")
+                    .on("mouseover", show_carrier)
+                    .on("mouseout", hide_tooltip)
+                    .attr("y", function (d, i) {
+                        return i * 20 + 5;
+                    })
+                    .attr("x", 5)
+                    .text(function (d) {
+                        if (d === "all") {
+                            return "ALL";
+                        } else {
+                            return d;
+                        }
+                    });
+
+                selector.selectAll("div")
+                    .transition()
+                    .duration(500)
+                    .style("background", function (d) {
+                        if (d === window.selected_carrier) {
+                            return "#2E7D32";
+                        } else {
+                            return "#A5D6A7";
+                        }
+                    })
+                    .style("color", function (d) {
+                        if (d === window.selected_carrier) {
+                            return "white";
+                        } else {
+                            return "black";
+                        }
+                    });
+
+                selector.selectAll("div")
+                    .on("click", function (d) {
+                        //set the global carrier value, and re-update map
+                        window.selected_carrier = d;
+                        update();
+                    });
+            }
+            // TODO this is where to maybe halt animations and just show data
+            var year_idx = 0;
+            var year_interval = setInterval(function () {
+                //animation: year + 1 and call update function
+                update();
+
+                year_idx++;
+                // changed year_idx >= 11 to >= 0
+                if (year_idx >= 0) {
+                    //when the animation done, display buttons
+                    clearInterval(year_interval);
+
+                    //Create year buttons, use for selecting year, 
+                    //then call update function to update the plot.
+                    var year_list = [2006, 2007, 2008, 2009, 2010, 2011,
+                        2012, 2013, 2014, 2015, 2016];
+                    var buttons = d3.select("body")
+                        .append("div")
+                        .attr("class", "years_buttons")
+                        .selectAll("div")
+                        .data(year_list)
+                        .enter()
+                        .append("div")
+                        .attr("class", function (d) { return ("Y" + d); })
+                        .text(function (d) { return d; });
+
+                    buttons.on("click", function (d) {
+
+                        d3.select(".years_buttons")
+                            .selectAll("div")
+                            .transition()
+                            .duration(500)
+                            .style("background", "#A5D6A7")
+                            .style("color", "black");
+
+                        d3.select(this)
+                            .transition()
+                            .duration(500)
+                            .style("background", "#2E7D32")
+                            .style("color", "white");
+
+                        window.global_year = d;
+                        var idx = d - 2006;
+                        jQuery('#slider').val(10 - idx).change();
+
+                        update();
+                    });
+
+                    //same methods as buttons, a slider way
+                    var slider = d3.select("body")
+                        .append("div")
+                        .attr("class", "years_slider")
+                        .html("<input " + "type = \"range\" " +
+                            "id = \"slider\" " +
+                            "min = \"0\" " +
+                            "max = \"10\" " +
+                            "step = \"1\" " +
+                            "value = \"0\" " +
+                            "data-orientation = \"vertical\" >");
+
+                    jQuery('#slider').rangeslider({
+                        polyfill: false,
+                        onSlide: function (position, value) {
+                            var idx = 10 - value;
+                            var year = 2016 - value;
+
+                            //reset all button color
+                            d3.select(".years_buttons")
+                                .selectAll("div")
+                                .transition()
+                                .duration(500)
+                                .style("background", "#A5D6A7")
+                                .style("color", "black");
+
+                            //set current year color
+                            d3.select(".years_buttons .Y" + year)
+                                .transition()
+                                .duration(500)
+                                .style("background", "#2E7D32")
+                                .style("color", "white");
+
+                            window.global_year = year;
+                            update();
+                        }
+                    });
+
+                    //add buttons for the TOP 10 carrier list
+                    var carrier_filter = d3.select(".selector")
+                        .selectAll("div");
+                } else {
+                    window.global_year = 2006 + year_idx;
+                }
+            }, 1000);
+
+            /*
+            create a legned to explain circle color means
+            */
+            var legend = svg.append("g")
+                .attr("class", "legend")
+                .attr("transform", "translate(" + (width - 350) + "," + 30 + ")")
+                .attr("border", 1)
+                .selectAll("g")
+                .data(["Rate of Delay Flights", "Rate of Cancelled or Diverted Flights"])
+                .enter().append("g");
+
+            legend.append("circle")
+                .attr("cy", function (d, i) {
+                    return i * 30;
+                })
+                .attr("r", 5)
+                .attr("fill", function (d) {
+                    if (d == "Rate of Delay Flights") {
+                        return 'orange';
+                    } else {
+                        return 'red';
+                    }
+                })
+                .attr("opacity", function (d) {
+                    if (d == "Rate of Delay Flights") {
+                        return 0.7;
+                    } else {
+                        return 0.7;
+                    }
+                });
+
+            legend.append("text")
+                .attr("y", function (d, i) {
+                    return i * 30 + 5;
+                })
+                .attr("x", 25)
+                .text(function (d) {
+                    return d;
+                });
+
+            var legend_border = svg.append("rect")
+                .attr("x", (width - 360))
+                .attr("y", 19)
+                .attr("height", 50)
+                .attr("width", 325)
+                .style("stroke", "black")
+                .style("fill", "none")
+                .style("stroke-width", 0.5);
+
+            /*
+            create a legned to explain circle size means
+            */
+            var size_legend = svg.append("g")
+                .attr("class", "size_legend")
+                .attr("transform", "translate(650, 80)")
+                .attr("border", 1)
+                .selectAll("g")
+                .data([10, 25, 50, 100])
+                .enter().append("g");
+
+            size_legend.append("circle")
+                .attr("cx", 60)
+                .attr("cy", function (d) { return (80 - radius(d)); })
+                .attr("r", function (d) { return radius(d); })
+                .style("stroke", "black")
+                .style("fill", "none")
+                .style("stroke-width", 1);
+
+            size_legend.append("line")
+                .attr("x1", 60)
+                .attr("y1", function (d) { return (80 - (2 * radius(d))); })
+                .attr("x2", 140)
+                .attr("y2", function (d) { return (80 - (2 * radius(d))); })
+                .style("stroke", "black")
+                .style("stroke-width", 1);
+
+            size_legend.append("text")
+                .attr("x", 145)
+                .attr("y", function (d) { return (83 - (2 * radius(d))); })
+                .text(function (d) { return (d + "%") });
+
+            /*
+            Carrier selector label
+            */
+            var selector_label = g.append("text")
+                .attr("class", "carrier_label")
+                .attr("x", (width - 180))
+                .attr("y", 170)
+                .text("Top 10 carriers:");
+
+            var carrier_selector = d3.select("body")
+                .append("div")
+                .attr("class", "selector");
+
+            var warning_label = d3.select("body")
+                .append("div")
+                .attr("class", "warning");
+        }
+    </script>
+</head>
+
+<body>
+    <h2>
+        Large Data Set Visual Explorer: United States Airline Delay Analysis
+    </h2>
+    <!-- Trigger the modal with a button -->
+    <div>
+        <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">About the
+            Project</button>
+    </div>
+
+    <br>
+    <br>
+    <div>
+        <script>
+            /* 
+            Use queue to handle three files in once.
+            */
+            queue()
+                .defer(d3.json, '/data/us-states.json')
+                .defer(d3.csv, 'airports.csv')
+                .defer(d3.csv, 'carriers.csv')
+                .defer(d3.csv, 'cleaned_data.csv')
+                .await(draw); 
+        </script>
+    </div>
+    
+
+    <!-- Modal component start  -->
+
+    <div class="modal fade" id="myModal" role="dialog">
+
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Modal Header</h4>
+                </div>
+                <div class="modal-body">
+                    <b>
+                        <h3> <b> About the project:</b> </h3>
+                        <p>this web app....</p>
+                        <br>
+                        <h3> <b> About the team:</b> </h3>
+                        <!--  -->
+                        <p>this web app....</p>
+                        <br>
+                        <h3> <b> Acknowlegements:</b> </h3>
+                        <!-- make a list here using ul tag -->
+                        <p>this web app....</p>
+                        <br>
+                        <h3> <b> About the project:</b> </h3>
+                        <p>this web app....</p>
+                    </b>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal component end -->
+</body>
+
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
+
+<head>
+    <title>Redirect to simple-sidebar</title>
+    <meta http-equiv="refresh" content="5; url = /startbootstrap-simple-sidebar" />
+</head>
+
+<body>
+    <h1 style="text-align:center;color:green;">
+        GEOG485L Final Project: Flight Delay Mapping
+    </h1>
+
+    <p style="text-align:center;">
+        If your browser supports Refresh,
+        you'll be redirected to GeeksforGeeks
+        Homepage, in 5 seconds.
+    </p>
+</body>
+<head>
+    <title> GEOG 485L/585L -- My First Map </title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"/>
+    <script src= "https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+</head>
+<body>
+    <p>
+        My first map will appear here:        
+    </p>
+    <div id="mapId" style="height: 400px; width: 600px;"></div>
+    <script>
+        // Bandelier Hall East lat/long: 35.0843° N, 106.6241° W
+        // create a map variable "mymap" that points to the map placed in the mapID <div>
+        // zoom the view on Bandelier Hall East building at a 17 zoom level 
+        var mymap = L.map('mapId').setView([35.08444, -106.6247], 17);
+
+        // create a variable named "osm" that is used to hold OpentStreetMap tile layer 
+        var osm = new L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+
+        // add the OpenStreetMap tile layer (i.e., the variable osm you defined above) to the map
+        osm.addTo(mymap);
+    </script>
+</body>
+
+</html> -->
