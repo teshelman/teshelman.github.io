@@ -16,7 +16,7 @@ function linegraph() {
     // .style("overflow", "visible");
 
     //Read the data
-    d3.csv("../data/2009-2018_aggregate.csv", function (data) {
+    d3.csv("../MyWebApp/data/2009-2018_aggregate.csv", function (data) {
         var month_totals = [];
         var i = 1;
         for (i; i <= 12; i++) {

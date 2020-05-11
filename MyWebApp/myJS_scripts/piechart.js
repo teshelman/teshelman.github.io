@@ -5,7 +5,7 @@ function pie() {
     console.log("this is the carrier", window.selected_carrier)
     //use d3 to nest data
 
-    d3.csv("../data/2009-2018_aggregate.csv", function (data) {
+    d3.csv("../MyWebApp/data/2009-2018_aggregate.csv", function (data) {
 
         window["dataset"] = [
             { label: 'airline', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.arr_del15 } else if (d.carrier == window.selected_carrier) { return d.arr_del15 } } })) },
