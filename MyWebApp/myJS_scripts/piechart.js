@@ -1,21 +1,21 @@
 
 function pie() {
 
-    console.log("this is the year", window.global_year)
-    console.log("this is the carrier", window.selected_carrier)
+    // console.log("this is the year", window.global_year)
+    // console.log("this is the carrier", window.selected_carrier)
     //use d3 to nest data
 
     d3.csv("../MyWebApp/data/2009-2018_aggregate.csv", function (data) {
 
         window["dataset"] = [
-            { label: 'airline', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.arr_del15 } else if (d.carrier == window.selected_carrier) { return d.arr_del15 } } })) },
-            { label: 'carrier', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.carrier_ct } else if (d.carrier == window.selected_carrier) { return d.carrier_ct } } })) },
-            { label: 'weather', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.weather_ct } else if (d.carrier == window.selected_carrier) { return d.weather_ct } } })) },
-            { label: 'nas', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.nas_ct } else if (d.carrier == window.selected_carrier) { return d.nas_ct } } })) },
-            { label: 'security', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.security_ct } else if (d.carrier == window.selected_carrier) { return d.security_ct } } })) },
-            { label: 'late aircraft', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.late_aircraft_ct } else if (d.carrier == window.selected_carrier) { return d.late_aircraft_ct } } })) },
-            { label: 'cancelled', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.arr_cancelled } else if (d.carrier == window.selected_carrier) { return d.arr_cancelled } } })) },
-            { label: 'diverted', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return d.arr_diverted } else if (d.carrier == window.selected_carrier) { return d.arr_diverted } } })) },];
+            { label: 'airline', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_del15/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_del15 / 60) } } })) },
+            { label: 'carrier', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.carrier_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.carrier_ct / 60) } } })) },
+            { label: 'weather', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.weather_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.weather_ct / 60) } } })) },
+            { label: 'nas', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.nas_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.nas_ct / 60) } } })) },
+            { label: 'security', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.security_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.security_ct / 60) } } })) },
+            { label: 'late aircraft', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.late_aircraft_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.late_aircraft_ct / 60) } } })) },
+            { label: 'cancelled', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_cancelled/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_cancelled / 60) } } })) },
+            { label: 'diverted', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_diverted/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_diverted / 60) } } })) },];
 
         // $.each(window["dataset"], function(key, value){
         //     console.log(key, value["count"]);
@@ -84,7 +84,7 @@ function pie() {
 
         var tooltip = d3.select('#chart') // select element in the DOM with id 'chart'
             .append('div') // append a div element to the element we've selected                                    
-            .attr('class', 'tooltip pie'); // add class 'tooltip' on the divs we just selected
+            .attr('class', 'tooltip_pie'); // add class 'tooltip' on the divs we just selected
 
         tooltip.append('div') // add divs to the tooltip defined above
             .attr('class', 'label'); // add class 'label' on the selection
@@ -127,7 +127,7 @@ function pie() {
             }));
             var percent = Math.round(1000 * d.data.count / total) / 10; // calculate percent
             tooltip.select('.label').html(d.data.label); // set current label           
-            tooltip.select('.count').html('total mins: ' + d.data.count); // set current count            
+            tooltip.select('.count').html('total hours: ' + d.data.count); // set current count            
             tooltip.select('.percent').html(percent + '%'); // set percent calculated above          
             tooltip.style('display', 'block'); // set display                     
         });

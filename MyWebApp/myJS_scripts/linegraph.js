@@ -43,7 +43,8 @@ function linegraph() {
                     totals["diverted"] = +value["count"]
                     // month_totals[i]["diverted"] = +value["count"]
                 } else {
-                    totals["total"] += (+value["count"])
+                    hours = (Math.round(value["count"] / 60))
+                    totals["total"] += (hours)
                     // month_totals[i]["totals"] += +value["count"]
                 }
                 j = i - 1
@@ -53,7 +54,7 @@ function linegraph() {
             // month_totals[i] = window["dataset"][]
         }
 
-        console.log(month_totals);
+        // console.log(month_totals);
         var max = 0;
         var min = 0;
         $.each(month_totals, function (key, value) {
@@ -104,7 +105,7 @@ function linegraph() {
         .attr("x", 0 - (height / 2))
         .attr("dy", "1em")
         .style("text-anchor", "middle")
-        .text("Delay (Minutes)");
+        .text("Delay (Hours)");
 
         // This allows to find the closest X index of the mouse:
         var bisect = d3.bisector(function (d) { return d.x; }).left;
@@ -187,18 +188,18 @@ function linegraph() {
         function mousemove() {
             // recover coordinate we need
             var x0 = x.invert(d3.mouse(this)[0]);
-            console.log(x0)
-            console.log(Math.round(x0))
+            // console.log(x0)
+            // console.log(Math.round(x0))
             // var i = bisect(totalsXCoords, Math.round(x0), 1);
             var i = Math.round(x0)
-            console.log(i)
+            // console.log(i)
             selectedData = month_totals[i - 1]['total']
             // console.log("what is this", selectedData.x);
             focus
                 .attr("cx", x(i))
                 .attr("cy", y(selectedData))
             focusText
-                .html("x:" + i + "  -  " + "y:" + selectedData)
+                .html("Month: " + i + ", " + "Delay: " + selectedData)
                 .attr("x", x(i) + 15)
                 .attr("y", y(selectedData))
         }

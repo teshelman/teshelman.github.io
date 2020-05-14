@@ -244,7 +244,7 @@
                 //setup a html var to display infomation for each element by airport ID
                 var info_table = "<table class = 'tooltips'>" +
                     "<tr><th> &nbsp; </th><th> Flights </th><th> Rate </th></tr>" +
-                    "<tr><td> Delay (mins) </td><td>" + this_info.delay +
+                    "<tr><td> Delay (Hours) </td><td>" + (Math.round(this_info.delay / 60)) +
                     "</td><td>" + this_info.rate_delay + "% </td></tr>" +
                     "<tr><td> No-Arrival (#) </td><td>" + this_info.notarrived +
                     "</td><td>" + this_info.rate_notarrived + "% </td></tr>" +
@@ -290,7 +290,7 @@
                 div_carrier.html(carrier_name)
                     .style("width", (size * 6) + "px")
                     .style("left", (990 - (size * 6)) + "px")
-                    .style("top", (d3.event.pageY - 160) + "px");
+                    .style("top", (d3.event.pageY - 180) + "px");
             }
 
             //two simple return key functions for data use.    
@@ -549,6 +549,9 @@
                     .data(current_carrierlist)
                     .enter()
                     .append("div")
+                    .attr("class", "row")
+                    .append("button")
+                    .attr("id", "carrier_buttons")
                     .append("text")
                     .on("mouseover", show_carrier)
                     .on("mouseout", hide_tooltip)
@@ -582,7 +585,7 @@
                         }
                     });
 
-                selector.selectAll("div")
+                selector.selectAll("button")
                     .on("click", function (d) {
                         //set the global carrier value, and re-update map
                         window.selected_carrier = d;
@@ -596,6 +599,10 @@
                         var newline = "<div id=" + "my_dataviz" + "></div>";
                         $("#lineGraph").append(newline);
                         linegraph();
+                        $(".pieYear").remove()
+                        $(".pieContainer").append("<p class=" + "pieYear" + "> <i>(Year: " + window.global_year + ")</i></p>")
+                        $(".lineYear").remove()
+                        $(".lineContainer").append("<p class=" + "lineYear" + "> <i>(Year: " + window.global_year + ")</i></p>")
                     });
 
             }
@@ -621,6 +628,24 @@
                     // console.log(year_list);
                     // var year_list = [2009, 2008, 2008, 2009, 2010, 2011,
                     //     2012, 2013, 2014, 2015, 2016];
+                    // var buttons = d3.select("#mapCol")
+                    //     .append("div")
+                    //     .attr("class", "years_buttons")
+                    //     .selectAll("div")
+                    //     .data(year_list)
+                    //     .enter()
+                    //     .append("div")
+                    //     .attr("class", function (d) { return ("Y" + d); })
+                    //     .text(function (d) { return d; });
+
+                    // buttons.on("click", function (d) {
+
+                    //     d3.select(".years_buttons")
+                    //         .selectAll("div")
+                    //         .transition()
+                    //         .duration(500)
+                    //         .style("background", "#A5D6A7")
+                    //         .style("color", "black");
                     var buttons = d3.select("#mapCol")
                         .append("div")
                         .attr("class", "years_buttons")
@@ -628,6 +653,8 @@
                         .data(year_list)
                         .enter()
                         .append("div")
+                        .attr("class", "row")
+                        .append("button")
                         .attr("class", function (d) { return ("Y" + d); })
                         .text(function (d) { return d; });
 
@@ -639,6 +666,7 @@
                             .duration(500)
                             .style("background", "#A5D6A7")
                             .style("color", "black");
+
 
                         d3.select(this)
                             .transition()
@@ -659,6 +687,14 @@
                         var newline = "<div id=" + "my_dataviz" + "></div>";
                         $("#lineGraph").append(newline);
                         linegraph();
+                        $(".pieYear").remove()
+                        $(".pieContainer").append("<p class=" + "pieYear" + "> <i>(Year: " + window.global_year + ")</i></p>")
+                        $(".lineYear").remove()
+                        $(".lineContainer").append("<p class=" + "lineYear" + "> <i>(Year: " + window.global_year + ")</i></p>")
+                        // <h5 class="title pieGraph">Flight Delay Category Percentages</h5>
+                        // $(".pieGraph").remove();
+                        // var pieTitle = "<h5 class=" + "title pieGraph" +">Flight Delay Category Percentages</h5>"
+
                     });
 
                     //same methods as buttons, a slider way
@@ -681,10 +717,10 @@
 
                             //reset all button color
                             d3.select(".years_buttons")
-                                .selectAll("div")
+                                .selectAll("button")
                                 .transition()
                                 .duration(500)
-                                .style("background", "#A5D6A7")
+                                .style("background", "#DDDDDD")
                                 .style("color", "black");
 
                             //set current year color
@@ -834,6 +870,9 @@
         </div>
     </div>
     
+
+    <div style="text-align: center;"><i>(Please use slider to preview years and click on the years or carrier to show
+            data)</i> </div>
     <br>
     <br>
     <div>
@@ -859,8 +898,9 @@
             <div id="separator" class="col-sm-2"></div>
             <div id="graphs" class="col-sm-4">
                 <div id="pie" class="row">
-                    <div class="title-holder">
-                        <h5 class="title">Flight Delay Category Percentages</h5>
+                    <div class="title-holder pieContainer">
+                        <h5 class="title pieGraph"> <b>Flight Delay Category Percentages</b> </h5>
+                        <p class="pieYear"> <i>(Year: 2009)</i></p>
                         <!-- <h2 class="subtitle">US Average Wedding Cost: <span class="new-total-holder"></span></h2> -->
                         <!-- <h5>Uncheck categories to recalculate.</h5> -->
                     </div>
@@ -870,8 +910,9 @@
                 </div>
                 <br>
                 <br>
-                <div class="title-holder">
-                    <h5 class="title">Line chart showing total delay time per month</h5>
+                <div class="title-holder lineContainer">
+                    <h5 class="title lineGraph"> <b>Line chart showing total delay time (hours) per month</b> </h5>
+                    <p class="lineYear"> <i>(Year: 2009)</i> </p>
                 </div>
                 <div id="lineGraph" class="row">
                     <div id="my_dataviz"></div>

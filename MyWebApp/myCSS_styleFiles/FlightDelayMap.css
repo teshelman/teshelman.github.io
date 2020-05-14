@@ -81,7 +81,7 @@ div.selector {
     text-align: left;
     top: 250px;
     left: 1000px;			
-    width: 50px;					
+    width: 60px;					
     height: 200px;					
     padding: 5px;				
     font: 12px sans-serif;			
@@ -104,4 +104,7 @@ text.year_label {
 
 .rangeslider__fill {
     background: gray;
+}
+#carrier_buttons{
+    width: 38px;
 }
