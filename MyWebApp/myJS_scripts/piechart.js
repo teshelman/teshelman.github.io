@@ -7,21 +7,21 @@ function pie() {
 
     d3.csv("../MyWebApp/data/2009-2018_aggregate.csv", function (data) {
 
-        window["dataset"] = [
-            { label: 'airline', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_del15/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_del15 / 60) } } })) },
-            { label: 'carrier', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.carrier_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.carrier_ct / 60) } } })) },
-            { label: 'weather', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.weather_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.weather_ct / 60) } } })) },
-            { label: 'nas', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.nas_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.nas_ct / 60) } } })) },
-            { label: 'security', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.security_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.security_ct / 60) } } })) },
-            { label: 'late aircraft', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.late_aircraft_ct/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.late_aircraft_ct / 60) } } })) },
-            { label: 'cancelled', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_cancelled/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_cancelled / 60) } } })) },
-            { label: 'diverted', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_diverted/60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_diverted / 60) } } })) },];
+        var dataset = [
+            { label: 'airline', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_del15 / 60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_del15 / 60) } } })), },
+            { label: 'carrier', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.carrier_ct / 60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.carrier_ct / 60) } } })), },
+            { label: 'weather', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.weather_ct / 60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.weather_ct / 60) } } })), },
+            { label: 'nas', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.nas_ct / 60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.nas_ct / 60) } } })), },
+            { label: 'security', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.security_ct / 60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.security_ct / 60) } } })), },
+            { label: 'late aircraft', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.late_aircraft_ct / 60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.late_aircraft_ct / 60) } } })), },
+            { label: 'cancelled', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_cancelled / 60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_cancelled / 60) } } })), },
+            { label: 'diverted', count: d3.sum(data.map(function (d) { if (d.year == window.global_year) { if (window.selected_carrier == "all") { return Math.round(d.arr_diverted / 60) } else if (d.carrier == window.selected_carrier) { return Math.round(d.arr_diverted / 60) } } })), },];
 
         // $.each(window["dataset"], function(key, value){
         //     console.log(key, value["count"]);
         // });
 
-        
+
 
 
 
@@ -37,7 +37,7 @@ function pie() {
         // });
 
 
-
+        // console.log(window.dataset, "WINDOW DATA")
         // TODO change these dimensions
         // chart dimensions
         var width = 300;
@@ -57,7 +57,6 @@ function pie() {
 
         // calculate new total
         var total = d3.sum(dataset, d => d.count);
-
         // define new total section
         var newTotal = d3.select('.new-total-holder')
             .append('span')
@@ -110,24 +109,31 @@ function pie() {
             d.count = +d.count; // calculate count as we iterate through the data
             d.enabled = true; // add enabled property to track which entries are checked
         });
-
         // creating the chart
+        var pieparts = pie(dataset);
         var path = svg.selectAll('path') // select all path elements inside the svg. specifically the 'g' element. they don't exist yet but they will be created below
-            .data(pie(dataset)) //associate dataset wit he path elements we're about to create. must pass through the pie function. it magically knows how to extract values and bakes it into the pie
+            .data(pieparts) //associate dataset wit he path elements we're about to create. must pass through the pie function. it magically knows how to extract values and bakes it into the pie
             .enter() //creates placeholder nodes for each of the values
             .append('path') // replace placeholders with path elements
             .attr('d', arc) // define d attribute with arc function above
             .attr('fill', function (d) { return color(d.data.label); }) // use color scale to define fill of each label in dataset
             .each(function (d) { this._current - d; }); // creates a smooth animation for each track
-
         // mouse event handlers are attached to path so they need to come after its definition
-        path.on('mouseover', function (d) {  // when mouse enters div      
-            var total = d3.sum(dataset.map(function (d) { // calculate the total number of tickets in the dataset         
-                return (d.enabled) ? d.count : 0; // checking to see if the entry is enabled. if it isn't, we return 0 and cause other percentages to increase                                      
-            }));
-            var percent = Math.round(1000 * d.data.count / total) / 10; // calculate percent
-            tooltip.select('.label').html(d.data.label); // set current label           
-            tooltip.select('.count').html('total hours: ' + d.data.count); // set current count            
+        path.on('mouseover', function (a) {  // when mouse enters aiv    
+            // var total = d3.sum(dataset.map(function (d) { // calculate the total number of tickets in the dataset    
+            //     return (d.enabled) ? d.count : 0; // checking to see if the entry is enabled. if it isn't, we return 0 and cause other percentages to increase                                      
+            // }));
+            var total = 0;
+            $.each(dataset, function (key, value) {
+                if (value.enabled == true) {
+                    total += value.count;
+                }
+            })
+
+            rawPercent = (1000 * a.data.count / total) / 10;
+            var percent = rawPercent.toFixed(2); // calculate percent
+            tooltip.select('.label').html(a.data.label); // set current label           
+            tooltip.select('.count').html('total hours: ' + a.data.count); // set current count            
             tooltip.select('.percent').html(percent + '%'); // set percent calculated above          
             tooltip.style('display', 'block'); // set display                     
         });
